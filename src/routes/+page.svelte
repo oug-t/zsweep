@@ -3,6 +3,7 @@
   import { onMount, onDestroy } from 'svelte';
   import { Flag, Bomb, Grid3x3, Wrench, X, Flame, Skull, Flower2, User, LogOut, Clock, Hourglass, Infinity as InfinityIcon } from 'lucide-svelte';
   import ResultView from '$lib/ResultView.svelte';
+  import { supabase } from '$lib/supabase';
 
   const GRID_SIZES = [
     { label: '9x9', rows: 9, cols: 9, mines: 10 },
@@ -15,7 +16,7 @@
   // --- SETTINGS ---
   let gameMode: 'time' | 'standard' = 'time'; 
   let currentSize = GRID_SIZES[0]; 
-  let timeLimit = 30;
+  let timeLimit = 15; // CHANGED: Default is now 15s
   let customTime = 60;
   let isCustomTime = false;
 
@@ -35,14 +36,11 @@
   let clickHistory: number[] = [];
   let clicksThisSecond = 0;
   
-  // Time Mode Stats
   let gridsSolved = 0;
   let gridsPlayed = 0;
   let totalCellsRevealed = 0; 
-  
-  // New Accuracy Stats
-  let sessionTotalMines = 0; // Total mines across all grids played
-  let sessionErrors = 0;     // Total explosions + wrong flags
+  let sessionTotalMines = 0; 
+  let sessionErrors = 0;     
   let finalAccuracy = 0;
   
   let isMouseDown = false;
@@ -55,34 +53,16 @@
     return Bomb;
   })();
 
-  function setMode(mode: 'time' | 'standard') {
-      gameMode = mode;
-      fullReset();
-  }
-
-  function setSize(size: typeof GRID_SIZES[0]) {
-    currentSize = size;
-    fullReset();
-  }
-
-  function setTime(t: number) {
-    timeLimit = t;
-    isCustomTime = false;
-    fullReset();
-  }
-
-  function setCustomTime() {
-    isCustomTime = true;
-    timeLimit = customTime;
-    fullReset();
-  }
+  function setMode(mode: 'time' | 'standard') { gameMode = mode; fullReset(); }
+  function setSize(size: typeof GRID_SIZES[0]) { currentSize = size; fullReset(); }
+  function setTime(t: number) { timeLimit = t; isCustomTime = false; fullReset(); }
+  function setCustomTime() { isCustomTime = true; timeLimit = customTime; fullReset(); }
 
   function applyCustom() {
     if (customRows < 5) customRows = 5;
     if (customCols < 5) customCols = 5;
     const maxMines = (customRows * customCols) - 9; 
     if (customMines > maxMines) customMines = maxMines;
-    
     currentSize = { label: 'custom', rows: customRows, cols: customCols, mines: customMines };
     showCustomModal = false;
     fullReset();
@@ -91,21 +71,15 @@
   function countCurrentSafeOpen() {
       let count = 0;
       for(let row of grid) {
-          for(let cell of row) {
-              if (cell.isOpen && !cell.isMine) count++;
-          }
+          for(let cell of row) { if (cell.isOpen && !cell.isMine) count++; }
       }
       return count;
   }
 
-  // Helper: Count wrong flags on current board
   function countWrongFlags() {
       let wrong = 0;
       for(let row of grid) {
-          for(let cell of row) {
-              // Mistake: Flagged but safe
-              if (cell.isFlagged && !cell.isMine) wrong++;
-          }
+          for(let cell of row) { if (cell.isFlagged && !cell.isMine) wrong++; }
       }
       return wrong;
   }
@@ -116,25 +90,18 @@
       return Math.max(0, Math.round(rawAcc));
   }
 
-  // --- GAME LOGIC ---
-
   function fullReset() {
     gameState = 'pending';
     gridsSolved = 0;
     gridsPlayed = 0;
     totalCellsRevealed = 0;
     totalClicks = 0;
-    
-    // Reset Accuracy Stats
     sessionTotalMines = 0;
     sessionErrors = 0;
     finalAccuracy = 0;
-
     clickHistory = []; 
     clicksThisSecond = 0;
-    
     timer = (gameMode === 'time') ? timeLimit : 0;
-    
     clearInterval(timerInterval);
     resetBoard();
   }
@@ -150,19 +117,12 @@
     gameState = 'playing';
     
     timerInterval = setInterval(() => {
-        if (gameMode === 'time') {
-            timer--;
-        } else {
-            timer++;
-        }
-        
+        if (gameMode === 'time') { timer--; } else { timer++; }
         clickHistory.push(clicksThisSecond);
         clickHistory = clickHistory; 
         clicksThisSecond = 0; 
 
-        if (gameMode === 'time' && timer <= 0) {
-            finishSession();
-        }
+        if (gameMode === 'time' && timer <= 0) { finishSession(); }
     }, 1000);
   }
 
@@ -170,17 +130,11 @@
     gameState = 'finished';
     clearInterval(timerInterval);
     if (clicksThisSecond > 0) clickHistory.push(clicksThisSecond);
-    
-    // Tally up the final (incomplete) grid stats
     gridsPlayed++;
     totalCellsRevealed += countCurrentSafeOpen();
-    
-    // Accuracy for final grid
     sessionTotalMines += currentSize.mines;
-    sessionErrors += countWrongFlags(); // No explosion error since time ran out
-
+    sessionErrors += countWrongFlags(); 
     finalAccuracy = calculateAccuracy();
-    
     grid = [...grid]; 
   }
 
@@ -205,9 +159,8 @@
         if (gameMode === 'time') {
             handleGridEnd(false);
         } else {
-            // Standard Mode Fail
             sessionTotalMines += currentSize.mines;
-            sessionErrors += 1; // Explosion
+            sessionErrors += 1; 
             sessionErrors += countWrongFlags();
             finalAccuracy = calculateAccuracy();
             finishSession();
@@ -219,12 +172,9 @@
 
   function toggleFlag(r: number, c: number) {
     if (gameState === 'finished') return;
-    
     if (!grid[r][c].isOpen) {
       grid[r][c].isFlagged = !grid[r][c].isFlagged;
-      if (grid[r][c].isFlagged) minesLeft--;
-      else minesLeft++;
-
+      if (grid[r][c].isFlagged) minesLeft--; else minesLeft++;
       totalClicks++;
       clicksThisSecond++;
       grid = grid; 
@@ -235,24 +185,17 @@
       let safeCellsOpen = 0;
       const totalSafeCells = (currentSize.rows * currentSize.cols) - currentSize.mines;
       for(let row of grid) {
-          for(let cell of row) {
-              if (cell.isOpen && !cell.isMine) safeCellsOpen++;
-          }
+          for(let cell of row) { if (cell.isOpen && !cell.isMine) safeCellsOpen++; }
       }
       if (safeCellsOpen === totalSafeCells) {
           if (gameMode === 'time') {
               handleGridEnd(true);
           } else {
-              // Standard Mode Win
               gridsSolved = 1;
               gridsPlayed = 1;
               totalCellsRevealed += totalSafeCells;
-              
-              // Perfect Accuracy on Win
               sessionTotalMines += currentSize.mines;
-              // No errors (wrong flags impossible if you won by opening safe cells)
               finalAccuracy = 100;
-              
               gameState = 'finished';
               clearInterval(timerInterval);
               if (clicksThisSecond > 0) clickHistory.push(clicksThisSecond);
@@ -263,48 +206,47 @@
 
   function handleGridEnd(win: boolean) {
       gridsPlayed++;
-      
-      // Accumulate Accuracy Stats
       sessionTotalMines += currentSize.mines;
-      
-      if (!win) {
-          sessionErrors += 1; // The mine you clicked
-      }
-      
-      // Count any wrong flags currently on board
+      if (!win) sessionErrors += 1; 
       sessionErrors += countWrongFlags();
-      
-      // Count Cells
       if (win) {
           gridsSolved++;
           totalCellsRevealed += (currentSize.rows * currentSize.cols) - currentSize.mines;
       } else {
           totalCellsRevealed += countCurrentSafeOpen();
       }
-      
       resetBoard();
   }
 
   function handleInput(e: KeyboardEvent) {
-    if (showCustomModal) return; 
+    if (showCustomModal && e.key !== 'Escape') return; 
 
+    // Handle Tab Restart Logic
     if (e.key === 'Tab') {
+        const active = document.activeElement;
+        // If focus is inside an input, let default Tab work
+        if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) {
+            return;
+        }
         e.preventDefault();
         fullReset();
         return;
     }
     
+    // Handle Esc Settings Logic
     if (e.key === 'Escape') {
-        finishSession();
+        e.preventDefault();
+        if (gameState === 'playing') {
+             finishSession();
+        } else {
+             showCustomModal = !showCustomModal;
+        }
         return;
     }
 
     if (e.code === 'Space') {
       e.preventDefault(); 
-      if (gameState === 'finished') {
-        fullReset();
-        return;
-      }
+      // REMOVED: gameState === 'finished' check so space only interacts with game cells, not restart.
       if (hoveredCell) {
         const { r, c } = hoveredCell;
         const cell = grid[r][c];
@@ -332,34 +274,44 @@
     }
   }
 
-  onMount(() => {
-    const savedUser = localStorage.getItem('zensweep_user');
-    if (savedUser) currentUser = savedUser;
+  onMount(async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.user) {
+        currentUser = session.user.user_metadata.full_name || session.user.email?.split('@')[0];
+    }
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        if (session?.user) {
+            currentUser = session.user.user_metadata.full_name || session.user.email?.split('@')[0];
+        } else {
+            currentUser = null;
+        }
+    });
     fullReset();
+    return () => { subscription.unsubscribe(); };
   });
 
-  function handleLogout() {
+  async function handleLogout() {
+    await supabase.auth.signOut();
     currentUser = null;
-    localStorage.removeItem('zensweep_user');
+    fullReset(); 
   }
 
   onDestroy(() => clearInterval(timerInterval));
 </script>
 
-<svelte:window 
-    on:keydown={handleInput} 
-    on:mouseup={() => isMouseDown = false}
-/>
+<svelte:window on:keydown={handleInput} on:mouseup={() => isMouseDown = false} />
 
-<div class="min-h-screen bg-bg text-text flex flex-col items-center font-mono">
+<div class="min-h-screen bg-bg text-text flex flex-col items-center font-mono relative">
   
   <div class="w-full max-w-5xl flex justify-between items-center p-8 mb-0 animate-in fade-in slide-in-from-top-4 duration-500">
-      <div class="flex items-center gap-2 select-none">
-          <Bomb size={24} class="text-main" />
-          <h1 class="text-2xl font-bold text-text tracking-tight">zen<span class="text-main">sweep</span></h1>
+      <div class="flex items-center gap-2 select-none transition-colors duration-300 {gameState === 'playing' ? 'opacity-50 grayscale' : 'opacity-100'}">
+          <Bomb size={24} class="{gameState === 'playing' ? 'text-sub' : 'text-main'}" />
+          <h1 class="text-2xl font-bold tracking-tight {gameState === 'playing' ? 'text-sub' : 'text-text'}">
+            zen<span class="{gameState === 'playing' ? 'text-sub' : 'text-main'}">sweep</span>
+          </h1>
       </div>
 
-      <div class="flex items-center gap-6 text-sm">
+      <div class="flex items-center gap-6 text-sm transition-opacity duration-300 {gameState === 'playing' ? 'opacity-0 pointer-events-none' : 'opacity-100'}">
           {#if currentUser}
               <div class="flex items-center gap-4">
                   <div class="flex items-center gap-2 text-main">
@@ -382,7 +334,8 @@
         cells={totalCellsRevealed} 
         {totalClicks}
         history={clickHistory}
-        accuracy={finalAccuracy} sizeLabel="{currentSize.label}"
+        accuracy={finalAccuracy}
+        sizeLabel="{currentSize.label}"
         {gridsSolved}
         {gridsPlayed}
         mode={gameMode}
@@ -391,88 +344,54 @@
 
   {:else}
 
-    <div class="flex items-center gap-6 bg-sub/10 px-4 py-2 rounded-lg mb-8 text-xs select-none transition-all hover:bg-sub/15">
-        
+    <div class="flex items-center gap-6 bg-sub/10 px-4 py-2 rounded-lg mb-8 text-xs select-none transition-all hover:bg-sub/15 duration-300 {gameState === 'playing' ? 'opacity-0 pointer-events-none' : 'opacity-100'}">
         <div class="flex items-center gap-3">
-            <button 
-                class="flex items-center gap-2 transition-colors {gameMode === 'time' ? 'text-main font-bold' : 'text-sub hover:text-text'}"
-                on:click={() => setMode('time')}
-            >
-                <Hourglass size={12} />
-                <span>time</span>
+            <button class="flex items-center gap-2 transition-colors {gameMode === 'time' ? 'text-main font-bold' : 'text-sub hover:text-text'}" on:click={() => setMode('time')}>
+                <Hourglass size={12} /><span>time</span>
             </button>
-            <button 
-                class="flex items-center gap-2 transition-colors {gameMode === 'standard' ? 'text-main font-bold' : 'text-sub hover:text-text'}"
-                on:click={() => setMode('standard')}
-            >
-                <InfinityIcon size={12} />
-                <span>standard</span>
+            <button class="flex items-center gap-2 transition-colors {gameMode === 'standard' ? 'text-main font-bold' : 'text-sub hover:text-text'}" on:click={() => setMode('standard')}>
+                <InfinityIcon size={12} /><span>standard</span>
             </button>
         </div>
-
         <div class="w-[1px] h-3 bg-sub/20"></div>
-
         {#if gameMode === 'time'}
             <div class="flex items-center gap-3">
                 <Clock size={12} class="text-sub opacity-50" />
                 {#each TIME_OPTIONS as t}
-                    <button 
-                        class="transition-colors duration-200 {timeLimit === t && !isCustomTime ? 'text-main font-bold' : 'text-sub hover:text-text'}"
-                        on:click={() => setTime(t)}
-                    >
-                        {t}
-                    </button>
+                    <button class="transition-colors duration-200 {timeLimit === t && !isCustomTime ? 'text-main font-bold' : 'text-sub hover:text-text'}" on:click={() => setTime(t)}>{t}</button>
                 {/each}
-                <button class="transition-colors duration-200 {isCustomTime ? 'text-main' : 'text-sub hover:text-text'}" on:click={setCustomTime}>
-                    <Wrench size={12} />
-                </button>
+                <button class="transition-colors duration-200 {isCustomTime ? 'text-main' : 'text-sub hover:text-text'}" on:click={setCustomTime}><Wrench size={12} /></button>
             </div>
-            
             <div class="w-[1px] h-3 bg-sub/20"></div>
         {/if}
-
         <div class="flex items-center gap-3">
             <Grid3x3 size={12} class="text-sub opacity-50" />
             {#each GRID_SIZES as size}
-                <button 
-                    class="transition-colors duration-200 {currentSize.label === size.label ? 'text-main font-bold' : 'text-sub hover:text-text'}"
-                    on:click={() => setSize(size)}
-                >
-                    {size.label}
-                </button>
+                <button class="transition-colors duration-200 {currentSize.label === size.label ? 'text-main font-bold' : 'text-sub hover:text-text'}" on:click={() => setSize(size)}>{size.label}</button>
             {/each}
-            <button class="transition-colors duration-200 {currentSize.label === 'custom' ? 'text-main' : 'text-sub hover:text-text'}" on:click={() => showCustomModal = true}>
-                <Wrench size={12} />
-            </button>
+            <button class="transition-colors duration-200 {currentSize.label === 'custom' ? 'text-main' : 'text-sub hover:text-text'}" on:click={() => showCustomModal = true}><Wrench size={12} /></button>
         </div>
     </div>
 
     <div class="flex flex-col gap-2 animate-in fade-in duration-300">
-        
         <div class="flex items-end justify-between px-1 text-main select-none mb-2">
             <div class="flex flex-col w-12">
               <span class="text-[10px] text-sub uppercase font-bold opacity-50">time</span>
               <span class="text-3xl font-bold leading-none text-main">{timer}</span>
             </div>
-
             {#if gameMode === 'time'}
                 <div class="flex flex-col items-center opacity-50">
                      <span class="text-[10px] uppercase font-bold">solved</span>
                      <span class="text-xl font-bold">{gridsSolved}/{gridsPlayed}</span>
                 </div>
             {/if}
-
             <div class="flex flex-col w-12 text-right">
               <span class="text-[10px] text-sub uppercase font-bold opacity-50">mines</span>
               <span class="text-3xl font-bold leading-none">{minesLeft}</span>
             </div>
         </div>
 
-        <div 
-          class="grid gap-1 bg-bg select-none transition-all duration-300 ease-in-out"
-          style="grid-template-columns: repeat({currentSize.cols}, minmax(0, 1fr));"
-          on:mousedown={() => { if(gameState === 'playing') isMouseDown = true }}
-        >
+        <div class="grid gap-1 bg-bg select-none transition-all duration-300 ease-in-out" style="grid-template-columns: repeat({currentSize.cols}, minmax(0, 1fr));" on:mousedown={() => { if(gameState === 'playing') isMouseDown = true }}>
           {#each grid as row, r (r)}
             {#each row as cell, c (c)}
               <button
@@ -488,16 +407,9 @@
                 on:mouseleave={() => hoveredCell = null}
               >
                 {#if cell.isOpen}
-                  {#if cell.isMine} 
-                    <Bomb size={16} /> 
+                  {#if cell.isMine} <Bomb size={16} /> 
                   {:else if cell.neighborCount > 0}
-                    <span class={
-                      cell.neighborCount === 1 ? 'text-blue-400' :
-                      cell.neighborCount === 2 ? 'text-green-400' :
-                      cell.neighborCount === 3 ? 'text-red-400' : 'text-purple-400'
-                    }>
-                      {cell.neighborCount}
-                    </span>
+                    <span class={cell.neighborCount === 1 ? 'text-blue-400' : cell.neighborCount === 2 ? 'text-green-400' : cell.neighborCount === 3 ? 'text-red-400' : 'text-purple-400'}>{cell.neighborCount}</span>
                   {/if}
                 {:else if cell.isFlagged}
                   <span class="text-error"><Flag size={14} fill="currentColor" /></span>
@@ -534,5 +446,16 @@
         </div>
     </div>
   {/if}
+
+  <div class="fixed bottom-8 text-xs text-sub opacity-40 font-mono flex gap-6 transition-opacity duration-300 {gameState === 'playing' ? 'opacity-0' : 'opacity-100'}">
+      <div class="flex items-center gap-2">
+          <kbd class="bg-sub/20 px-1.5 py-0.5 rounded text-text">tab</kbd>
+          <span>- restart test</span>
+      </div>
+      <div class="flex items-center gap-2">
+          <kbd class="bg-sub/20 px-1.5 py-0.5 rounded text-text">esc</kbd>
+          <span>- settings</span>
+      </div>
+  </div>
 
 </div>
