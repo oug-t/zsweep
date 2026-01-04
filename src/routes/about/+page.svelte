@@ -4,6 +4,7 @@
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
 	import { supabase } from '$lib/supabase';
+	import { Mail, Github } from 'lucide-svelte';
 
 	let { data } = $props();
 	let currentUser: string | null = null;
@@ -185,6 +186,39 @@
 					If you encounter a bug, or have a feature request — join the community or open an issue on
 					GitHub. Created with love for the minimalist community.
 				</p>
+			</section>
+
+			<section class="border-t border-sub/10 pb-24 pt-12">
+				<h2 class="mb-6 flex items-center gap-2 font-bold uppercase tracking-tight text-text">
+					<Mail size={16} class="text-main" /> contact
+				</h2>
+
+				<p class="mb-8 max-w-2xl">
+					If you encounter a bug, have a feature request, or just want to say hi — you can reach me
+					directly through the following channels.
+				</p>
+
+				<div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+					<!-- Email -->
+					<a
+						href="tommyguo024@outlook.com"
+						class="flex items-center justify-center gap-3 rounded-lg bg-sub/5 px-6 py-4 text-text transition-colors hover:bg-sub/10"
+					>
+						<Mail size={18} />
+						<span class="font-bold">email</span>
+					</a>
+
+					<!-- GitHub -->
+					<a
+						href="https://github.com/oug-t/zensweep"
+						target="_blank"
+						rel="noopener noreferrer"
+						class="flex items-center justify-center gap-3 rounded-lg bg-sub/5 px-6 py-4 text-text transition-colors hover:bg-sub/10"
+					>
+						<Github size={18} />
+						<span class="font-bold">github</span>
+					</a>
+				</div>
 			</section>
 		</div>
 	</div>

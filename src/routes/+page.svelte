@@ -23,6 +23,7 @@
 	import { supabase } from '$lib/supabase';
 	import { THEMES } from '$lib/themes';
 	import { currentTheme } from '$lib/themeStore';
+	import { base } from '$app/paths';
 
 	const GRID_SIZES = [
 		{ label: '9x9', rows: 9, cols: 9, mines: 10 },
@@ -349,7 +350,11 @@
 			DIRECTIONS.forEach(([dr, dc]) => {
 				const nr = r + dr,
 					nc = c + dc;
-				if (grid[nr] && grid[nr][nc]) handleClick(nr, nc);
+				const neighbor = grid[nr]?.[nc];
+
+				if (neighbor && !neighbor.isOpen && !neighbor.isFlagged) {
+					handleClick(nr, nc);
+				}
 			});
 		}
 	}
@@ -415,18 +420,28 @@
 	<div
 		class="animate-in fade-in slide-in-from-top-4 mb-0 flex w-full max-w-5xl items-center justify-between p-8 duration-500"
 	>
-		<div
-			class="flex items-center gap-4 transition-all duration-300
-    {gameState === 'playing' ? 'pointer-events-none opacity-0' : 'opacity-100'}"
-		>
-			<a href="/" class="flex select-none items-center gap-2 transition-opacity hover:opacity-80">
-				<Bomb size={24} class="text-main" />
+		<div class="flex items-center gap-4 transition-all duration-300">
+			<script lang="ts">
+				import { base } from '$app/apths';
+			</script>
+
+			<a
+				href="{base}/about"
+				class="flex select-none items-center gap-2 transition-all
+				{gameState === 'playing' ? 'pointer-events-none opacity-50 grayscale' : 'hover:opacity-80'}"
+			>
+				<Bomb size={24} class={gameState === 'playing' ? 'text-sub' : 'text-main'} />
 				<h1 class="text-2xl font-bold tracking-tight text-text">
-					zen<span class="text-main">sweep</span>
+					zen<span class={gameState === 'playing' ? 'text-text' : 'text-main'}>sweep</span>
 				</h1>
 			</a>
 
-			<a href="/about" class="text-sub transition-colors hover:text-text" title="About">
+			<a
+				href="{base}/about"
+				class="text-sub transition-all duration-300 hover:text-text
+				{gameState === 'playing' ? 'pointer-events-none opacity-0' : 'opacity-100'}"
+				title="About"
+			>
 				<svg
 					xmlns="http://www.w3.org/2000/svg"
 					width="20"
@@ -437,16 +452,14 @@
 					stroke-width="2"
 					stroke-linecap="round"
 					stroke-linejoin="round"
+					><circle cx="12" cy="12" r="10" /><path d="M12 16v-4" /><path d="M12 8h.01" /></svg
 				>
-					<circle cx="12" cy="12" r="10" /><path d="M12 16v-4" /><path d="M12 8h.01" />
-				</svg>
 			</a>
 		</div>
+
 		<div
-			class="flex items-center gap-6 text-sm transition-opacity duration-300 {gameState ===
-			'playing'
-				? 'pointer-events-none opacity-0'
-				: 'opacity-100'}"
+			class="flex items-center gap-6 text-sm transition-opacity duration-300
+			{gameState === 'playing' ? 'pointer-events-none opacity-0' : 'opacity-100'}"
 		>
 			{#if currentUser}
 				<div class="group relative z-20">
@@ -463,8 +476,13 @@
 						<div
 							class="flex min-w-[160px] flex-col rounded border border-sub/20 bg-bg p-1 font-mono text-sm shadow-xl"
 						>
+							<script lang="ts">
+								import { base } from '$app/paths'; // Add this import
+								// ... rest of your imports
+							</script>
+
 							<a
-								href="/profile"
+								href="{base}/profile"
 								class="flex items-center gap-2 rounded px-3 py-2 text-sub transition-colors hover:bg-sub/10 hover:text-text"
 							>
 								<User size={14} />
