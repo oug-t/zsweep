@@ -421,14 +421,10 @@
 		class="animate-in fade-in slide-in-from-top-4 mb-0 flex w-full max-w-5xl items-center justify-between p-8 duration-500"
 	>
 		<div class="flex items-center gap-4 transition-all duration-300">
-			<script lang="ts">
-				import { base } from '$app/apths';
-			</script>
-
 			<a
 				href="{base}/about"
 				class="flex select-none items-center gap-2 transition-all
-				{gameState === 'playing' ? 'pointer-events-none opacity-50 grayscale' : 'hover:opacity-80'}"
+        {gameState === 'playing' ? 'pointer-events-none opacity-50 grayscale' : 'hover:opacity-80'}"
 			>
 				<Bomb size={24} class={gameState === 'playing' ? 'text-sub' : 'text-main'} />
 				<h1 class="text-2xl font-bold tracking-tight text-text">
@@ -476,11 +472,6 @@
 						<div
 							class="flex min-w-[160px] flex-col rounded border border-sub/20 bg-bg p-1 font-mono text-sm shadow-xl"
 						>
-							<script lang="ts">
-								import { base } from '$app/paths'; // Add this import
-								// ... rest of your imports
-							</script>
-
 							<a
 								href="{base}/profile"
 								class="flex items-center gap-2 rounded px-3 py-2 text-sub transition-colors hover:bg-sub/10 hover:text-text"

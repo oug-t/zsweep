@@ -3,8 +3,6 @@
 @tailwind utilities;
 
 :root {
-  /* ... keep your theme variables here ... */
   --bg: 25 25 25;
   --main: 216 180 254;
-  /* etc */
 }

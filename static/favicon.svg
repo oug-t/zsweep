@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+	<style>
+		/* Default (Light Mode) Color */
+		circle { fill: #333333; }
+
+		/* Dark Mode Override */
+		@media (prefers-color-scheme: dark) {
+			circle { fill: #ffffff; }
+		}
+	</style>
+	<circle cx="16" cy="16" r="14" />
+</svg>
