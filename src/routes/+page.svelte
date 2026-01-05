@@ -1,14 +1,21 @@
 <script lang="ts">
-	import { createGrid, placeMines, revealCell, DIRECTIONS, type Cell } from '$lib/minesweeper';
+	import {
+		createGrid,
+		placeMines,
+		revealCell,
+		DIRECTIONS,
+		type Cell,
+		calculate3BV
+	} from '$lib/minesweeper';
 	import { onMount, onDestroy } from 'svelte';
+	// 1. Import confetti
+	import confetti from 'canvas-confetti';
 	import {
 		Flag,
 		Bomb,
 		Grid3x3,
 		Wrench,
-		X,
 		Flame,
-		Skull,
 		Flower2,
 		User,
 		LogOut,
@@ -59,6 +66,12 @@
 	let clickHistory: number[] = [];
 	let clicksThisSecond = 0;
 
+	// New 3BV Variables
+	let session3BV = 0;
+	let currentGrid3BV = 0;
+	// Track Win/Loss State for UI
+	let isWin = false;
+
 	let gridsSolved = 0;
 	let gridsPlayed = 0;
 	let totalCellsRevealed = 0;
@@ -81,7 +94,6 @@
 		t.label.toLowerCase().includes(searchQuery.toLowerCase())
 	);
 
-	// Commands List (Expandable later)
 	const COMMANDS = [
 		{
 			id: 'theme',
@@ -93,7 +105,6 @@
 				searchInputEl?.focus();
 			}
 		}
-		// You can add { id: 'custom', label: 'Custom Game...', icon: Wrench, ... } here later
 	];
 
 	$: filteredCommands = COMMANDS.filter((c) =>
@@ -105,7 +116,7 @@
 		showPalette = true;
 		paletteView = 'root';
 		searchQuery = '';
-		setTimeout(() => searchInputEl?.focus(), 50); // Focus input after render
+		setTimeout(() => searchInputEl?.focus(), 50);
 	}
 
 	function setMode(mode: 'time' | 'standard') {
@@ -153,6 +164,23 @@
 		return Math.max(0, Math.round(rawAcc));
 	}
 
+	// 2. Explosion Logic
+	function triggerExplosion() {
+		const colors = ['#ef4444', '#dc2626', '#b91c1c', '#000000']; // Red, Dark Red, Black
+
+		confetti({
+			particleCount: 150,
+			spread: 100,
+			origin: { y: 0.6 },
+			colors: colors,
+			disableForReducedMotion: true,
+			gravity: 1.2,
+			scalar: 1.2,
+			drift: 0,
+			ticks: 200
+		});
+	}
+
 	function fullReset() {
 		gameState = 'pending';
 		gridsSolved = 0;
@@ -162,6 +190,11 @@
 		sessionTotalMines = 0;
 		sessionErrors = 0;
 		finalAccuracy = 0;
+		isWin = false;
+
+		// Reset 3BV
+		session3BV = 0;
+
 		clickHistory = [];
 		clicksThisSecond = 0;
 		timer = gameMode === 'time' ? timeLimit : 0;
@@ -190,22 +223,32 @@
 			clicksThisSecond = 0;
 
 			if (gameMode === 'time' && timer <= 0) {
-				finishSession();
+				// Time ran out - Run Completed Successfully
+				finishSession(true);
 			}
 		}, 1000);
 	}
 
-	function finishSession() {
+	// 3. Update finishSession to accept win/loss state
+	function finishSession(win: boolean) {
 		gameState = 'finished';
+		isWin = win;
 		clearInterval(timerInterval);
+
 		if (clicksThisSecond > 0) clickHistory.push(clicksThisSecond);
 		gridsPlayed++;
-		totalCellsRevealed += countCurrentSafeOpen();
+
+		// Only add credit for the current board if we won (or time ran out safely)
+		// If we exploded, we don't count the revealed cells of the failed board
+		if (win) {
+			totalCellsRevealed += countCurrentSafeOpen();
+		}
+
 		sessionTotalMines += currentSize.mines;
 		sessionErrors += countWrongFlags();
 		finalAccuracy = calculateAccuracy();
 		grid = [...grid];
-		saveResult(true);
+		saveResult(win);
 	}
 
 	function handleClick(r: number, c: number) {
@@ -219,22 +262,31 @@
 			isFirstClick = false;
 			if (gameState === 'pending') startSession();
 			placeMines(grid, currentSize.mines, { r, c });
+
+			currentGrid3BV = calculate3BV(grid);
+
+			if (gameMode === 'standard') {
+				session3BV = currentGrid3BV;
+			}
+
 			grid = [...grid];
 		}
 
 		const result = revealCell(grid, r, c);
 		grid = result.grid;
 
+		// 4. Update Game Over Logic for both modes
 		if (result.gameOver) {
-			if (gameMode === 'time') {
-				handleGridEnd(false);
-			} else {
-				sessionTotalMines += currentSize.mines;
-				sessionErrors += 1;
-				sessionErrors += countWrongFlags();
-				finalAccuracy = calculateAccuracy();
-				finishSession();
-			}
+			// Trigger Explosion
+			triggerExplosion();
+
+			// Add error count
+			sessionErrors += 1;
+			sessionErrors += countWrongFlags();
+			finalAccuracy = calculateAccuracy();
+
+			// End Session immediately as LOSS (False)
+			finishSession(false);
 		} else {
 			checkWin();
 		}
@@ -262,17 +314,20 @@
 		}
 		if (safeCellsOpen === totalSafeCells) {
 			if (gameMode === 'time') {
-				handleGridEnd(true);
+				// Time Mode: Clear board, add points, go to next board
+				gridsSolved++;
+				session3BV += currentGrid3BV;
+				totalCellsRevealed += totalSafeCells;
+				handleGridEnd(true); // Continue playing
 			} else {
+				// Standard Mode: You win!
 				gridsSolved = 1;
 				gridsPlayed = 1;
 				totalCellsRevealed += totalSafeCells;
 				sessionTotalMines += currentSize.mines;
 				finalAccuracy = 100;
-				gameState = 'finished';
-				clearInterval(timerInterval);
 				if (clicksThisSecond > 0) clickHistory.push(clicksThisSecond);
-				grid = [...grid];
+				finishSession(true); // Pass TRUE for win
 			}
 		}
 	}
@@ -282,13 +337,14 @@
 		sessionTotalMines += currentSize.mines;
 		if (!win) sessionErrors += 1;
 		sessionErrors += countWrongFlags();
-		if (win) {
-			gridsSolved++;
-			totalCellsRevealed += currentSize.rows * currentSize.cols - currentSize.mines;
-		} else {
-			totalCellsRevealed += countCurrentSafeOpen();
-		}
+
+		// Note: This function is primarily used for Time Mode cycling now,
+		// since Standard mode calls finishSession directly on win/loss.
 		resetBoard();
+
+		// Recalculate 3BV for the new board (Time Mode)
+		// We can't do it here because mines aren't placed yet.
+		// It happens on the next 'handleClick'
 	}
 
 	function handleInput(e: KeyboardEvent) {
@@ -304,7 +360,6 @@
 			return;
 		}
 
-		// Handle Tab Restart Logic
 		if (e.key === 'Tab') {
 			const active = document.activeElement;
 			if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) return;
@@ -313,11 +368,11 @@
 			return;
 		}
 
-		// Handle Esc Settings Logic
 		if (e.key === 'Escape') {
 			e.preventDefault();
 			if (gameState === 'playing') {
-				finishSession();
+				// Manually ending the session (Esc) counts as a safe finish
+				finishSession(true);
 			} else {
 				openPalette();
 			}
@@ -391,11 +446,8 @@
 		const {
 			data: { user }
 		} = await supabase.auth.getUser();
-		if (!user) return; // Don't save if not logged in
+		if (!user) return;
 
-		// Define the score based on mode
-		// Time Mode: Score is "Mines Solved"
-		// Standard Mode: Score is "Time Taken"
 		const scoreValue = gameMode === 'time' ? gridsSolved : timer;
 		const settingLabel = gameMode === 'time' ? timeLimit.toString() : currentSize.label;
 
@@ -424,7 +476,7 @@
 			<a
 				href="{base}/about"
 				class="flex select-none items-center gap-2 transition-all
-        {gameState === 'playing' ? 'pointer-events-none opacity-50 grayscale' : 'hover:opacity-80'}"
+				{gameState === 'playing' ? 'pointer-events-none opacity-50 grayscale' : 'hover:opacity-80'}"
 			>
 				<Bomb size={24} class={gameState === 'playing' ? 'text-sub' : 'text-main'} />
 				<h1 class="text-2xl font-bold tracking-tight text-text">
@@ -528,7 +580,7 @@
 
 	{#if gameState === 'finished'}
 		<ResultView
-			win={true}
+			win={isWin}
 			time={gameMode === 'time' ? timeLimit - timer : timer}
 			cells={totalCellsRevealed}
 			{totalClicks}
@@ -538,6 +590,7 @@
 			{gridsSolved}
 			{gridsPlayed}
 			mode={gameMode}
+			total3BV={session3BV}
 			on:restart={fullReset}
 		/>
 	{:else}
@@ -632,15 +685,12 @@
 					{#each row as cell, c (c)}
 						<button
 							class="flex h-8 w-8 items-center justify-center rounded-sm text-sm font-bold transition-all duration-75 focus:outline-none
-                {cell.isOpen ? 'bg-sub/10' : 'bg-sub/30 hover:bg-sub/50'}
-                {cell.isMine && cell.isOpen ? 'bg-error text-bg' : ''}
-                {cell.isMine && !cell.isOpen && gameState === 'finished'
-								? 'bg-error/50 opacity-50'
-								: ''} 
-                {hoveredCell?.r === cell.row && hoveredCell?.c === cell.col
+							{cell.isOpen ? 'bg-sub/10' : 'bg-sub/30 hover:bg-sub/50'}
+							{cell.isMine && cell.isOpen ? 'bg-error text-bg' : ''}
+							{cell.isMine && !cell.isOpen && gameState === 'finished' ? 'bg-error/50 opacity-50' : ''}
+							{hoveredCell?.r === cell.row && hoveredCell?.c === cell.col
 								? 'z-10 ring-2 ring-main/20 brightness-125'
-								: ''}
-                "
+								: ''}"
 							on:click={() => handleClick(cell.row, cell.col)}
 							on:contextmenu|preventDefault={() => toggleFlag(cell.row, cell.col)}
 							on:mouseenter={() => (hoveredCell = { r: cell.row, c: cell.col })}
