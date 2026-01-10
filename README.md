@@ -172,7 +172,7 @@ Check out issues labeled 'good first issue' to get started.
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 ## License
-Distributed under the GPLv3 License.
+Distributed under the AGPLv3 License.
 See `LICENSE` for more information.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
