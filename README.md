@@ -1,74 +1,177 @@
-# ZenSweep
+<a id="readme-top"></a>
 
-**ZenSweep** is a minimalist, customizable Minesweeper experience designed for focus and productivity. Inspired by modern minimalist tools, it provides a clean, distraction-free environment to track your progress and refine your sweeping skills.
+[![Contributors][contributors-shield]][contributors-url]
+[![Forks][forks-shield]][forks-url]
+[![Stargazers][stars-shield]][stars-url]
+[![Issues][issues-shield]][issues-url]
+[![MIT License][license-shield]][license-url]
 
----
+<br />
+<div align="center">
+  <a href="https://zsweep.com">
+    <img src="static/favicon.png" alt="zsweep logo" width="80" height="80">
+  </a>
 
-## Core Features
+<h3 align="center">zsweep</h3>
 
-### 🎮 Game Modes
-- **Time Mode**: Clear as many grids as possible within a time limit.
-- **Standard Mode**: Traditional Minesweeper pacing and rules.
+  <p align="center">
+    A minimalist, keyboard-centric Minesweeper experience designed for flow state.
+    <br />
+    <a href="https://zsweep.com"><strong>Play the Beta »</strong></a>
+    <br />
+    <br />
+    <a href="https://zsweep.com">View Demo</a>
+    &middot;
+    <a href="https://github.com/oug-t/zsweep/issues/new?labels=bug&template=bug-report.md">Report Bug</a>
+    &middot;
+    <a href="https://github.com/oug-t/zsweep/issues/new?labels=enhancement&template=feature-request.md">Request Feature</a>
+  </p>
+</div>
 
-### 🎨 Customization
-- Fully themeable UI via an integrated command palette.
+<details>
+  <summary>Table of Contents</summary>
+  <ol>
+    <li>
+      <a href="#about-the-project">About The Project</a>
+      <ul>
+        <li><a href="#built-with">Built With</a></li>
+      </ul>
+    </li>
+    <li>
+      <a href="#getting-started">Getting Started</a>
+      <ul>
+        <li><a href="#prerequisites">Prerequisites</a></li>
+        <li><a href="#installation">Installation</a></li>
+      </ul>
+    </li>
+    <li><a href="#features">Features</a></li>
+    <li><a href="#roadmap">Roadmap</a></li>
+    <li><a href="#contributing">Contributing</a></li>
+    <li><a href="#license">License</a></li>
+    <li><a href="#contact">Contact</a></li>
+  </ol>
+</details>
 
-### 📊 Progress Tracking
-- Integrated with **Supabase** to save your sweep history, including:
-  - Accuracy
-  - Total cells cleared
-  - Time spent
+## About The Project
 
-### 🧘 Minimalist Design
-- Built with **SvelteKit** and **Tailwind CSS** for a fast, responsive, and aesthetic experience.
+[![zsweep Screenshot](static/screenshot.png)](https://zsweep.com)
 
----
+**zsweep** is a modern reimagining of Minesweeper, inspired by the "Monkeytype" aesthetic. It strips away the clutter of traditional Windows-95 clones to focus purely on speed, accuracy, and flow state.
 
-## Keybinds
+Most Minesweeper clones are ugly, click-heavy, and lack detailed stats. zsweep fixes this by providing:
+* **Keyboard-first navigation** (Tab to restart, Esc for commands).
+* **Advanced metrics** like 3BV/s (Bechtel's Board Benchmark per second).
+* **A "Time Mode"** that challenges you to solve as many grids as possible in 15/30/60 seconds.
 
-Efficiency is at the heart of ZenSweep. You can navigate almost the entire app without a mouse:
+Whether you are a competitive sweeper or just looking for a zen break, zsweep is designed to feel "just right."
 
-| Key      | Action                                                                 |
-|----------|------------------------------------------------------------------------|
-| `Tab`    | Restart a sweep (Home) / Return to Home (About)                         |
-| `Esc`    | Open Command Palette / Search Themes                                    |
-| `Space`  | Toggle flag on hovered cell / Attempt chord                             |
-| `Arrows` | Navigate menus and palettes                                             |
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
----
+### Built With
 
-## Stats Explained
+* [![Svelte][Svelte.dev]][Svelte-url]
+* [![TailwindCSS][TailwindCSS]][Tailwind-url]
+* [![Supabase][Supabase]][Supabase-url]
+* [![TypeScript][TypeScript]][TypeScript-url]
 
-- **Accuracy**  
-  The percentage of safe cells clicked without hitting a mine or placing incorrect flags.
-
-- **Cells Swept**  
-  The total volume of safe grid space successfully cleared across your sessions.
-
-- **Time**  
-  The total duration spent actively sweeping on a single grid.
-
----
-
-## Design Inspiration & Appreciation
-
-ZenSweep’s visual language and philosophy draw inspiration from **Monkeytype**.  
-Special appreciation goes to the Monkeytype project for demonstrating how thoughtful minimalism, strong typography, and keyboard-first interaction can create a focused and enjoyable user experience. ZenSweep adapts these ideas into a Minesweeper context while maintaining its own identity.
-
----
-
-## Tech Stack
-
-- **Framework**: SvelteKit  
-- **Database / Auth**: Supabase  
-- **Styling**: Tailwind CSS  
-- **Icons**: Lucide Svelte  
-
----
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 ## Getting Started
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/your-username/zensweep.git
+To get a local copy up and running for development or contribution, follow these steps.
 
+### Prerequisites
+
+* npm
+  ```sh
+  npm install npm@latest -g
+Installation
+Clone the repo
+
+Bash
+
+git clone [https://github.com/oug-t/zsweep.git](https://github.com/oug-t/zsweep.git)
+Install NPM packages
+
+Bash
+
+npm install
+Setup Environment Variables Create a .env file in the root directory and add your Supabase credentials:
+
+Code snippet
+
+PUBLIC_SUPABASE_URL=your_supabase_url
+PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+Run the development server
+
+Bash
+
+npm run dev
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+Features
+🎮 Game Modes
+Time Mode: Clear as many grids as possible within a set time limit (15s, 30s, 60s).
+
+Standard Mode: Classic Minesweeper pacing and rules (9x9, 16x16, 30x16).
+
+📊 Stats & Progression
+3BV/s Tracking: Measures the theoretical difficulty of a board divided by time.
+
+Heatmap: Visualizes your activity over the last year (GitHub style).
+
+Estimated Mines Swept: Tracks your total career "damage."
+
+🎨 Theming
+Built-in Command Palette (Cmd+K or Esc) to switch themes instantly.
+
+"Explosion" particle effects on game over.
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+Contributing
+We are actively looking for contributors!
+
+Contributions are what make the open source community such an amazing place to learn, inspire, and create. Whether you are fixing a typo, optimizing the 3BV algorithm, or adding a new theme, your help is greatly appreciated.
+
+🏆 Contributor Perk: All contributors who have a PR merged will be permanently listed on the zsweep "About" page as a thank you for helping build this project.
+
+If you have a suggestion that would make this better:
+
+Fork the Project
+
+Create your Feature Branch (git checkout -b feature/AmazingFeature)
+
+Commit your Changes (git commit -m 'Add some AmazingFeature')
+
+Push to the Branch (git push origin feature/AmazingFeature)
+
+Open a Pull Request
+
+Good First Issues: Check out the Issues tab for tickets labeled good first issue if you are new to the codebase!
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+Top contributors:
+<a href="https://www.google.com/search?q=https://github.com/oug-t/zsweep/graphs/contributors"> <img src="https://www.google.com/search?q=https://contrib.rocks/image%3Frepo%3DYOUR_USERNAME/zsweep" alt="contrib.rocks image" /> </a>
+
+License
+Distributed under the GPLv3 License. See LICENSE for more information.
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+Contact
+Tommy Guo - tommyguo024@outlook.com
+
+Project Link: https://github.com/oug-t/zsweep
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+Acknowledgments
+Monkeytype for the visual inspiration and philosophy.
+
+Supabase for making the backend effortless.
+
+Lucide Icons for the beautiful SVG set.
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>

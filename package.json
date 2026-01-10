@@ -39,7 +39,8 @@
 		"vite": "^7.2.6"
 	},
 	"dependencies": {
-		"@supabase/supabase-js": "^2.89.0",
+		"@supabase/ssr": "^0.8.0",
+		"@supabase/supabase-js": "^2.90.0",
 		"@types/canvas-confetti": "^1.9.0",
 		"canvas-confetti": "^1.9.4",
 		"chart.js": "^4.5.1",

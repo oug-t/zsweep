@@ -1,29 +1,36 @@
-import { supabase } from '$lib/supabase.ts'; // Adjust path to your client
+// src/routes/about/+page.server.ts
 import type { PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async () => {
-	const { count: totalStarted } = await supabase
+export const load: PageServerLoad = async ({ locals: { supabase } }) => {
+	// 1. Fetch 'win' and 'score' columns for ALL games played
+	const { data, error } = await supabase
 		.from('game_results')
-		.select('*', { count: 'exact', head: true });
+		.select('win, score');
 
-	const { count: totalCompleted } = await supabase
-		.from('game_results')
-		.select('*', { count: 'exact', head: true })
-		.eq('win', true);
+	if (error) {
+		console.error('Error fetching stats:', error);
+		return {
+			stats: { started: 0, completed: 0, seconds: 0 }
+		};
+	}
 
-	const { data: timeRecords } = await supabase
-		.from('game_results')
-		.select('setting')
-		.eq('mode', 'time');
+	// 2. LOGIC IMPLEMENTATION
+	
+	// "Total Sweeps Started" -> Count of ALL rows (Wins + Losses)
+	const started = data.length;
 
-	const totalSeconds =
-		timeRecords?.reduce((acc, curr) => acc + parseInt(curr.setting || '0'), 0) || 0;
+	// "Total Sweeps Completed" -> Count ONLY rows where win is TRUE
+	const completed = data.filter((game) => game.win === true).length;
+
+	// "Total Time Sweeping" -> Sum of 'score' from ALL rows (Wins + Losses)
+	// This ensures time spent on failed attempts is counted.
+	const seconds = data.reduce((total, game) => total + (game.score || 0), 0);
 
 	return {
 		stats: {
-			started: totalStarted || 0,
-			completed: totalCompleted || 0,
-			seconds: totalSeconds
+			started,
+			completed,
+			seconds
 		}
 	};
 };

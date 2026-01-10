@@ -1,17 +1,18 @@
 <script lang="ts">
-	import { Bomb, Trophy, Keyboard, Info, Palette, User, LogOut } from 'lucide-svelte';
+	import { Bomb, Trophy, Keyboard, Info, Palette, User, LogOut, Mail, Github } from 'lucide-svelte';
 	import { currentTheme } from '$lib/themeStore';
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
 	import { supabase } from '$lib/supabase';
-	import { Mail, Github } from 'lucide-svelte';
 
-	let { data } = $props();
+	// Uses Svelte 5 Runes (if you are on Svelte 4, change this to: export let data;)
+	let { data } = $props(); 
+
 	let currentUser: string | null = null;
 
-	// Terminology and Scaling logic
+	// --- FORMATTING LOGIC ---
 	const fmtCount = (n: number) => {
-		if (n >= 1000000) return (n / 1000000).toFixed(1) + ' million';
+		if (n >= 1000000) return (n / 1000000).toFixed(1) + 'm';
 		if (n >= 1000) return (n / 1000).toFixed(1) + 'k';
 		return n.toLocaleString();
 	};
@@ -19,23 +20,22 @@
 	const formatTime = (seconds: number) => {
 		const mins = seconds / 60;
 		const hours = seconds / 3600;
+		const days = seconds / 86400;
 		const years = seconds / 31536000;
+
 		if (years >= 1) return `${years.toFixed(1)} years`;
+		if (days >= 1) return `${days.toFixed(1)} days`;
 		if (hours >= 1) return `${Math.floor(hours)} hours`;
 		return `${Math.floor(mins)} minutes`;
 	};
 
-	// Auth Logic (Same as front page)
+	// --- AUTH LOGIC ---
 	onMount(async () => {
-		const {
-			data: { session }
-		} = await supabase.auth.getSession();
+		const { data: { session } } = await supabase.auth.getSession();
 		if (session?.user) {
 			currentUser = session.user.user_metadata.full_name || session.user.email?.split('@')[0];
 		}
-		const {
-			data: { subscription }
-		} = supabase.auth.onAuthStateChange((_event, session) => {
+		const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
 			currentUser = session?.user
 				? session.user.user_metadata.full_name || session.user.email?.split('@')[0]
 				: null;
@@ -58,12 +58,8 @@
 
 <svelte:window on:keydown={handleKeydown} />
 
-<div
-	class="relative flex min-h-screen flex-col items-center bg-bg p-8 font-mono text-text transition-colors duration-300"
->
-	<div
-		class="animate-in fade-in slide-in-from-top-4 mb-16 flex w-full max-w-5xl items-center justify-between duration-500"
-	>
+<div class="relative flex min-h-screen flex-col items-center bg-bg p-8 font-mono text-text transition-colors duration-300">
+	<div class="animate-in fade-in slide-in-from-top-4 mb-16 flex w-full max-w-5xl items-center justify-between duration-500">
 		<a href="/" class="flex select-none items-center gap-2 transition-opacity hover:opacity-80">
 			<Bomb size={24} class="text-main" />
 			<h1 class="text-2xl font-bold tracking-tight text-text">
@@ -74,31 +70,18 @@
 		<div class="flex items-center gap-6 text-sm">
 			{#if currentUser}
 				<div class="group relative z-20">
-					<button
-						class="flex items-center gap-2 rounded px-3 py-1.5 text-main transition-all hover:bg-sub/10"
-					>
+					<button class="flex items-center gap-2 rounded px-3 py-1.5 text-main transition-all hover:bg-sub/10">
 						<User size={16} />
 						<span class="font-bold">{currentUser}</span>
 					</button>
-
-					<div
-						class="invisible absolute right-0 top-full pt-2 opacity-0 transition-all duration-200 group-hover:visible group-hover:opacity-100"
-					>
-						<div
-							class="flex min-w-[160px] flex-col rounded border border-sub/20 bg-bg p-1 font-mono text-sm shadow-xl"
-						>
-							<a
-								href="/profile"
-								class="flex items-center gap-2 rounded px-3 py-2 text-sub transition-colors hover:bg-sub/10 hover:text-text"
-							>
+					<div class="invisible absolute right-0 top-full pt-2 opacity-0 transition-all duration-200 group-hover:visible group-hover:opacity-100">
+						<div class="flex min-w-[160px] flex-col rounded border border-sub/20 bg-bg p-1 font-mono text-sm shadow-xl">
+							<a href="/profile" class="flex items-center gap-2 rounded px-3 py-2 text-sub transition-colors hover:bg-sub/10 hover:text-text">
 								<User size={14} />
 								<span>Profile</span>
 							</a>
 							<div class="my-1 h-[1px] bg-sub/10"></div>
-							<button
-								on:click={handleLogout}
-								class="flex w-full items-center gap-2 rounded px-3 py-2 text-left text-sub transition-colors hover:bg-error/10 hover:text-error"
-							>
+							<button on:click={handleLogout} class="flex w-full items-center gap-2 rounded px-3 py-2 text-left text-sub transition-colors hover:bg-error/10 hover:text-error">
 								<LogOut size={14} />
 								<span>Sign Out</span>
 							</button>
@@ -106,10 +89,7 @@
 					</div>
 				</div>
 			{:else}
-				<a
-					href="/login"
-					class="flex h-8 w-8 items-center justify-center rounded text-sub transition-colors hover:bg-sub/10 hover:text-text"
-				>
+				<a href="/login" class="flex h-8 w-8 items-center justify-center rounded text-sub transition-colors hover:bg-sub/10 hover:text-text">
 					<User size={18} />
 				</a>
 			{/if}
@@ -117,22 +97,18 @@
 	</div>
 
 	<div class="animate-in fade-in w-full max-w-4xl duration-700">
+		
 		<div class="mb-24 grid grid-cols-1 gap-12 text-center md:grid-cols-3">
 			<div class="flex flex-col gap-1">
-				<span class="text-xs font-bold uppercase tracking-widest text-sub"
-					>total sweeps started</span
-				>
+				<span class="text-xs font-bold uppercase tracking-widest text-sub">total sweeps started</span>
 				<span class="text-5xl font-bold text-text">{fmtCount(data.stats.started)}</span>
 			</div>
 			<div class="flex flex-col gap-1">
-				<span class="text-xs font-bold uppercase tracking-widest text-sub">total time sweeping</span
-				>
+				<span class="text-xs font-bold uppercase tracking-widest text-sub">total time sweeping</span>
 				<span class="text-5xl font-bold text-text">{formatTime(data.stats.seconds)}</span>
 			</div>
 			<div class="flex flex-col gap-1">
-				<span class="text-xs font-bold uppercase tracking-widest text-sub"
-					>total sweeps completed</span
-				>
+				<span class="text-xs font-bold uppercase tracking-widest text-sub">total sweeps completed</span>
 				<span class="text-5xl font-bold text-text">{fmtCount(data.stats.completed)}</span>
 			</div>
 		</div>
@@ -199,16 +175,14 @@
 				</p>
 
 				<div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-					<!-- Email -->
 					<a
-						href="tommyguo024@outlook.com"
+						href="mailto:tommyguo024@outlook.com"
 						class="flex items-center justify-center gap-3 rounded-lg bg-sub/5 px-6 py-4 text-text transition-colors hover:bg-sub/10"
 					>
 						<Mail size={18} />
 						<span class="font-bold">email</span>
 					</a>
 
-					<!-- GitHub -->
 					<a
 						href="https://github.com/oug-t/zensweep"
 						target="_blank"

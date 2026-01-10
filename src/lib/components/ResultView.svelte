@@ -1,30 +1,31 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, createEventDispatcher } from 'svelte';
 	import Chart from 'chart.js/auto';
-	import { AlertTriangle, Skull } from 'lucide-svelte';
+	import { Skull, RotateCcw } from 'lucide-svelte';
 
+	const dispatch = createEventDispatcher();
+
+	// --- PROPS ---
 	export let win: boolean = false;
 	export let time: number = 0;
-	export let total3BV: number = 0; // Passed from parent
+	export let total3BV: number = 0;
 	export let totalClicks: number = 0;
-	export let history: number[];
+	export let history: number[] = [];
 	export let accuracy: number = 0;
 	export let sizeLabel: string = '';
 	export let gridsSolved: number = 0;
 	export let gridsPlayed: number = 0;
 	export let mode: 'standard' | 'time' = 'standard';
+	export let cells: number = 0; // <--- Added missing prop
 
 	let chartCanvas: HTMLCanvasElement;
 	let chartInstance: any;
 
 	const safeTime = time === 0 ? 1 : time;
-
-	// Calculate 3BV/s
 	$: bbbPerSecond = (total3BV / safeTime).toFixed(2);
-
-	// Calculate Efficiency (3BV / Clicks) - Optional but cool
 	$: efficiency = totalClicks > 0 ? Math.round((total3BV / totalClicks) * 100) : 0;
 
+	// Calculate Consistency
 	let consistency = 0;
 	if (history && history.length > 0) {
 		const mean = history.reduce((a, b) => a + b, 0) / history.length;
@@ -33,7 +34,7 @@
 	}
 
 	onMount(() => {
-		if (!win || !chartCanvas) return; // Don't draw chart if lost
+		if (!win || !chartCanvas) return;
 		if (chartInstance) chartInstance.destroy();
 
 		const chartLabels =
@@ -48,7 +49,7 @@
 						{
 							label: 'Clicks',
 							data: history,
-							borderColor: '#d8b4fe',
+							borderColor: '#d8b4fe', // Use your main color hex
 							backgroundColor: 'rgba(216, 180, 254, 0.1)',
 							fill: true,
 							tension: 0.4,
@@ -61,6 +62,7 @@
 				options: {
 					responsive: true,
 					maintainAspectRatio: false,
+					animation: { duration: 1000, easing: 'easeOutQuart' },
 					plugins: { legend: { display: false } },
 					scales: { x: { display: false }, y: { display: false } },
 					layout: { padding: 5 }
@@ -89,8 +91,12 @@
 				<span class="text-2xl font-bold text-text">{time}s</span>
 			</div>
 			<div class="flex flex-col">
-				<span class="text-xs font-bold uppercase text-sub opacity-50">solved</span>
-				<span class="text-2xl font-bold text-text">{gridsSolved}</span>
+				<span class="text-xs font-bold uppercase text-sub opacity-50">
+					{mode === 'standard' ? 'swept' : 'solved'}
+				</span>
+				<span class="text-2xl font-bold text-text">
+					{mode === 'standard' ? cells : gridsSolved}
+				</span>
 			</div>
 			<div class="flex flex-col">
 				<span class="text-xs font-bold uppercase text-sub opacity-50">acc</span>
@@ -140,10 +146,20 @@
 			</div>
 		</div>
 	{/if}
+
+	<div class="mt-8 flex flex-col items-center gap-4">
+		<button
+			class="flex items-center gap-2 rounded-full bg-sub/10 px-6 py-3 font-bold text-main transition-all hover:bg-main hover:text-bg"
+			on:click={() => dispatch('restart')}
+		>
+			<RotateCcw size={18} />
+			<span>Play Again</span>
+		</button>
+		<span class="text-xs text-sub opacity-40">or press <kbd>tab</kbd></span>
+	</div>
 </div>
 
 <style>
-	/* Custom Shake Animation */
 	@keyframes shake {
 		0%,
 		100% {

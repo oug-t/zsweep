@@ -8,7 +8,6 @@
 		calculate3BV
 	} from '$lib/minesweeper';
 	import { onMount, onDestroy } from 'svelte';
-	// 1. Import confetti
 	import confetti from 'canvas-confetti';
 	import {
 		Flag,
@@ -26,7 +25,7 @@
 		Search,
 		ChevronRight
 	} from 'lucide-svelte';
-	import ResultView from '$lib/ResultView.svelte';
+	import ResultView from '$lib/components/ResultView.svelte';
 	import { supabase } from '$lib/supabase';
 	import { THEMES } from '$lib/themes';
 	import { currentTheme } from '$lib/themeStore';
@@ -164,10 +163,9 @@
 		return Math.max(0, Math.round(rawAcc));
 	}
 
-	// 2. Explosion Logic
+	// --- CONFETTI EFFECTS ---
 	function triggerExplosion() {
-		const colors = ['#ef4444', '#dc2626', '#b91c1c', '#000000']; // Red, Dark Red, Black
-
+		const colors = ['#ef4444', '#dc2626', '#b91c1c', '#000000']; 
 		confetti({
 			particleCount: 150,
 			spread: 100,
@@ -178,6 +176,20 @@
 			scalar: 1.2,
 			drift: 0,
 			ticks: 200
+		});
+	}
+
+	function triggerWin() {
+		const colors = ['#10b981', '#34d399', '#f59e0b', '#fbbf24']; // Green & Gold
+		confetti({
+			particleCount: 200,
+			spread: 120,
+			origin: { y: 0.6 },
+			colors: colors,
+			disableForReducedMotion: true,
+			gravity: 1.0,
+			decay: 0.9,
+			ticks: 300
 		});
 	}
 
@@ -192,7 +204,6 @@
 		finalAccuracy = 0;
 		isWin = false;
 
-		// Reset 3BV
 		session3BV = 0;
 
 		clickHistory = [];
@@ -218,36 +229,61 @@
 			} else {
 				timer++;
 			}
+			
+			// Push stats for graph
 			clickHistory.push(clicksThisSecond);
 			clickHistory = clickHistory;
 			clicksThisSecond = 0;
 
+			// Check Time Attack Expiration
 			if (gameMode === 'time' && timer <= 0) {
-				// Time ran out - Run Completed Successfully
+				// Success: Time ran out, run is complete
 				finishSession(true);
 			}
 		}, 1000);
 	}
 
-	// 3. Update finishSession to accept win/loss state
 	function finishSession(win: boolean) {
 		gameState = 'finished';
 		isWin = win;
 		clearInterval(timerInterval);
 
 		if (clicksThisSecond > 0) clickHistory.push(clicksThisSecond);
-		gridsPlayed++;
-
-		// Only add credit for the current board if we won (or time ran out safely)
-		// If we exploded, we don't count the revealed cells of the failed board
-		if (win) {
-			totalCellsRevealed += countCurrentSafeOpen();
+		
+		// Final stat collection
+		if (gameMode === 'standard') {
+			// In standard, ending the session (win) means we finished 1 grid
+			gridsPlayed = 1;
+			sessionTotalMines = currentSize.mines; // Ensure we count mines for accuracy
+			if(win) {
+				// If we won standard, all safe cells are revealed
+				totalCellsRevealed = (currentSize.rows * currentSize.cols) - currentSize.mines;
+			} else {
+				// If we lost, count what we managed to open
+				totalCellsRevealed = countCurrentSafeOpen();
+			}
+		} else {
+			// Time Mode: 
+			// We only count the current partial board if we "Won" (Time ran out)
+			// If we "Lost" (Exploded), the current board is invalid for stats
+			if (win) {
+				totalCellsRevealed += countCurrentSafeOpen();
+				// Add mines from the current partial board for accuracy calc
+				sessionTotalMines += currentSize.mines; 
+				// Time mode counts partially played grids as played
+				gridsPlayed++; 
+			}
 		}
 
-		sessionTotalMines += currentSize.mines;
-		sessionErrors += countWrongFlags();
+		// Final Error check
+		if (!win) {
+			sessionErrors += countWrongFlags();
+		}
+
 		finalAccuracy = calculateAccuracy();
-		grid = [...grid];
+		grid = [...grid]; // Force refresh
+		
+		if (win) triggerWin();
 		saveResult(win);
 	}
 
@@ -275,17 +311,11 @@
 		const result = revealCell(grid, r, c);
 		grid = result.grid;
 
-		// 4. Update Game Over Logic for both modes
 		if (result.gameOver) {
-			// Trigger Explosion
 			triggerExplosion();
-
-			// Add error count
-			sessionErrors += 1;
+			// Immediate penalty for hitting a mine
+			sessionErrors += 1; 
 			sessionErrors += countWrongFlags();
-			finalAccuracy = calculateAccuracy();
-
-			// End Session immediately as LOSS (False)
 			finishSession(false);
 		} else {
 			checkWin();
@@ -314,37 +344,19 @@
 		}
 		if (safeCellsOpen === totalSafeCells) {
 			if (gameMode === 'time') {
-				// Time Mode: Clear board, add points, go to next board
 				gridsSolved++;
+				gridsPlayed++; 
 				session3BV += currentGrid3BV;
 				totalCellsRevealed += totalSafeCells;
-				handleGridEnd(true); // Continue playing
-			} else {
-				// Standard Mode: You win!
-				gridsSolved = 1;
-				gridsPlayed = 1;
-				totalCellsRevealed += totalSafeCells;
 				sessionTotalMines += currentSize.mines;
-				finalAccuracy = 100;
-				if (clicksThisSecond > 0) clickHistory.push(clicksThisSecond);
-				finishSession(true); // Pass TRUE for win
+				sessionErrors += countWrongFlags();
+
+				resetBoard(); 
+			} else {
+				gridsSolved = 1;
+				finishSession(true);
 			}
 		}
-	}
-
-	function handleGridEnd(win: boolean) {
-		gridsPlayed++;
-		sessionTotalMines += currentSize.mines;
-		if (!win) sessionErrors += 1;
-		sessionErrors += countWrongFlags();
-
-		// Note: This function is primarily used for Time Mode cycling now,
-		// since Standard mode calls finishSession directly on win/loss.
-		resetBoard();
-
-		// Recalculate 3BV for the new board (Time Mode)
-		// We can't do it here because mines aren't placed yet.
-		// It happens on the next 'handleClick'
 	}
 
 	function handleInput(e: KeyboardEvent) {
@@ -371,7 +383,6 @@
 		if (e.key === 'Escape') {
 			e.preventDefault();
 			if (gameState === 'playing') {
-				// Manually ending the session (Esc) counts as a safe finish
 				finishSession(true);
 			} else {
 				openPalette();
@@ -442,13 +453,32 @@
 		fullReset();
 	}
 
+	// --- FIXED SAVE LOGIC ---
 	async function saveResult(win: boolean) {
 		const {
 			data: { user }
 		} = await supabase.auth.getUser();
 		if (!user) return;
 
-		const scoreValue = gameMode === 'time' ? gridsSolved : timer;
+		// 1. Calculate Time Taken
+		let timeTaken = 0;
+		if (gameMode === 'standard') {
+			// Standard counts UP from 0
+			timeTaken = timer;
+		} else {
+			// Time counts DOWN from Limit. 
+			// Time Taken = Limit - Remaining Time
+			timeTaken = timeLimit - timer;
+		}
+
+		// 2. Calculate Grids Solved
+		let gridsValue = 0;
+		if (gameMode === 'standard') {
+			gridsValue = win ? 1 : 0;
+		} else {
+			gridsValue = gridsSolved;
+		}
+
 		const settingLabel = gameMode === 'time' ? timeLimit.toString() : currentSize.label;
 
 		await supabase.from('game_results').insert({
@@ -456,7 +486,8 @@
 			mode: gameMode,
 			setting: settingLabel,
 			win: win,
-			score: scoreValue,
+			time: timeTaken,   // New column
+			grids: gridsValue, // New column (renamed from score)
 			accuracy: finalAccuracy
 		});
 	}
