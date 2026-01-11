@@ -593,7 +593,7 @@
 </script>
 
 <svelte:head>
-	<title>Zsweep | The Vim-Optimized Minesweeper</title>
+	<title>Zsweep</title>
 	<meta
 		name="description"
 		content="Play Minesweeper without a mouse. Zsweep is a modern, keyboard-driven implementation of the classic game, optimized for speed and efficiency with Vim motions."
