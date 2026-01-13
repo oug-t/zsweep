@@ -167,10 +167,6 @@ npm run dev
 
 Thanks to these wonderful people for helping improve zsweep:
 
-<a href="https://github.com/oug-t/zsweep/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=oug-t/zsweep" alt="Contributors" />
-</a>
-
 * **[@flo-bit](https://github.com/flo-bit)** - Implemented the initial Chording logic (#27)
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
