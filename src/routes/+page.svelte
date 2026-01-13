@@ -248,76 +248,150 @@
 		}
 	}
 
-	function handleInput(e: KeyboardEvent) {
-		if (showPalette) {
-			if (e.key === 'Escape') {
-				if (paletteView === 'themes') { paletteView = 'root'; searchQuery = ''; }
-				else showPalette = false;
-			}
-			return;
-		}
-		if (isSearchMode) {
-			e.preventDefault();
-			if (e.key === 'Escape') { isSearchMode = false; searchTerm = ''; }
-			else if (e.key === 'Enter') { executeSearch(); isSearchMode = false; }
-			else if (e.key === 'Backspace') searchTerm = searchTerm.slice(0, -1);
-			else if (/^[0-8]$/.test(e.key)) searchTerm = e.key;
-			return;
-		}
-		const activeEl = document.activeElement;
-		if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA')) return;
-		if (e.metaKey || e.ctrlKey || e.altKey) return;
+    function handleInput(e: KeyboardEvent) {
+        // 1. Palette Handling
+        if (showPalette) {
+            if (e.key === 'Escape') {
+                if (paletteView === 'themes') { paletteView = 'root'; searchQuery = ''; }
+                else showPalette = false;
+            }
+            return;
+        }
 
-		if (e.key === 'Tab') { e.preventDefault(); fullReset(); return; }
-		if (e.key === 'Escape') {
-			e.preventDefault();
-			if (vimBuffer.length > 0) vimBuffer = '';
-			else if (gameState === 'playing') finishSession(true);
-			else openPalette();
-			return;
-		}
+        if (isSearchMode) {
+            e.preventDefault();
+            if (e.key === 'Escape') { isSearchMode = false; searchTerm = ''; }
+            else if (e.key === 'Enter') { executeSearch(); isSearchMode = false; }
+            else if (e.key === 'Backspace') searchTerm = searchTerm.slice(0, -1);
+            else if (/^[0-8]$/.test(e.key)) searchTerm = e.key;
+            return;
+        }
 
-		const now = Date.now();
-		if (e.key === 'g' && lastKey === 'g' && now - lastKeyTime < 500) {
-			cursor = { r: 0, c: cursor.c };
-			lastKey = ''; vimBuffer = ''; return;
-		}
-		if (e.key === 'g') { lastKey = 'g'; lastKeyTime = now; return; }
+        const activeEl = document.activeElement;
+        if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA')) return;
+        if (e.metaKey || e.ctrlKey || e.altKey) return;
 
-		const action = handleVimKey(e.key);
-		if (action) {
-			e.preventDefault();
-			if (action.type === 'START_SEARCH') { isSearchMode = true; searchTerm = ''; return; }
-			if (action.type === 'NEXT_MATCH' && searchMatches.length > 0) {
-				matchIndex = (matchIndex + 1) % searchMatches.length;
-				cursor = searchMatches[matchIndex]; return;
-			}
-			if (action.type === 'PREV_MATCH' && searchMatches.length > 0) {
-				matchIndex = (matchIndex - 1 + searchMatches.length) % searchMatches.length;
-				cursor = searchMatches[matchIndex]; return;
-			}
-			if (action.type === 'DIGIT') { vimBuffer += action.value; return; }
-			if (action.type === 'ZERO') {
-				if (vimBuffer.length > 0) vimBuffer += '0';
-				else cursor = { r: cursor.r, c: 0 }; return;
-			}
-			if (action.type === 'START_ROW') { cursor = { r: cursor.r, c: 0 }; vimBuffer = ''; return; }
-			if (action.type === 'GO_BOTTOM') { cursor = { r: currentSize.rows - 1, c: cursor.c }; vimBuffer = ''; return; }
+        if (e.key === 'Tab') { e.preventDefault(); fullReset(); return; }
+        if (e.key === 'Escape') {
+            e.preventDefault();
+            if (vimBuffer.length > 0) vimBuffer = '';
+            else if (gameState === 'playing') finishSession(true);
+            else openPalette();
+            return;
+        }
 
-			const mult = vimBuffer.length > 0 ? parseInt(vimBuffer) : 1;
-			if (action.type === 'MOVE_CURSOR') {
-				cursor.r = Math.max(0, Math.min(currentSize.rows - 1, cursor.r + action.dy * mult));
-				cursor.c = Math.max(0, Math.min(currentSize.cols - 1, cursor.c + action.dx * mult));
-				vimBuffer = '';
-			} else if (action.type === 'FLAG') { toggleFlag(cursor.r, cursor.c); vimBuffer = ''; }
-			else if (action.type === 'REVEAL') { handleClick(cursor.r, cursor.c); vimBuffer = ''; }
-			else if (action.type === 'SMART') {
-				if (!grid[cursor.r][cursor.c].isOpen) toggleFlag(cursor.r, cursor.c);
-				else attemptChord(cursor.r, cursor.c);
-				vimBuffer = '';
-			}
-		}
-	}
+        const now = Date.now();
+
+        if (e.key === 'g' && lastKey === 'g' && now - lastKeyTime < 500) {
+            cursor = { r: 0, c: cursor.c };
+            lastKey = ''; vimBuffer = ''; return;
+        }
+        if (e.key === 'g') { lastKey = 'g'; lastKeyTime = now; return; }
+
+        
+        const mult = vimBuffer.length > 0 ? parseInt(vimBuffer) : 1;
+
+        if (e.key === 'w') {
+            let jumps = mult;
+            let { r, c } = cursor;
+            
+            while (jumps > 0) {
+                c++;
+                if (c >= currentSize.cols) { c = 0; r++; }
+
+                let loops = 0;
+                const maxLoops = currentSize.rows * currentSize.cols; // Prevent infinite loop
+                
+                while (r < currentSize.rows && loops < maxLoops) {
+                    if (grid[r] && grid[r][c] && !grid[r][c].isOpen) {
+                        break; 
+                    }
+                    c++;
+                    if (c >= currentSize.cols) { c = 0; r++; }
+                    loops++;
+                }
+                jumps--;
+            }
+            
+            if (r < currentSize.rows) cursor = { r, c };
+            vimBuffer = ''; // Clear buffer
+            return;
+        }
+
+        if (e.key === 'b') {
+            let jumps = mult;
+            let { r, c } = cursor;
+
+            while (jumps > 0) {
+                // Always move at least one step back
+                c--;
+                if (c < 0) { c = currentSize.cols - 1; r--; }
+
+                // Scan backward
+                let loops = 0;
+                const maxLoops = currentSize.rows * currentSize.cols;
+
+                while (r >= 0 && loops < maxLoops) {
+                    if (grid[r] && grid[r][c] && !grid[r][c].isOpen) {
+                        break;
+                    }
+                    c--;
+                    if (c < 0) { c = currentSize.cols - 1; r--; }
+                    loops++;
+                }
+                jumps--;
+            }
+
+            if (r >= 0) cursor = { r, c };
+            vimBuffer = '';
+            return;
+        }
+        // --- FIX ENDS HERE ---
+
+        // 5. Handle Standard Actions (hjkl, flags, numbers) via helper
+        const action = handleVimKey(e.key);
+        
+        if (action) {
+            e.preventDefault();
+            if (action.type === 'START_SEARCH') { isSearchMode = true; searchTerm = ''; return; }
+            
+            // Search Navigation (n / N)
+            if (action.type === 'NEXT_MATCH' && searchMatches.length > 0) {
+                matchIndex = (matchIndex + 1) % searchMatches.length;
+                cursor = searchMatches[matchIndex]; return;
+            }
+            if (action.type === 'PREV_MATCH' && searchMatches.length > 0) {
+                matchIndex = (matchIndex - 1 + searchMatches.length) % searchMatches.length;
+                cursor = searchMatches[matchIndex]; return;
+            }
+
+            // Buffer Building
+            if (action.type === 'DIGIT') { vimBuffer += action.value; return; }
+            if (action.type === 'ZERO') {
+                if (vimBuffer.length > 0) vimBuffer += '0';
+                else cursor = { r: cursor.r, c: 0 }; return;
+            }
+
+            // Movement Actions
+            if (action.type === 'START_ROW') { cursor = { r: cursor.r, c: 0 }; vimBuffer = ''; return; }
+            if (action.type === 'GO_BOTTOM') { cursor = { r: currentSize.rows - 1, c: cursor.c }; vimBuffer = ''; return; }
+
+            if (action.type === 'MOVE_CURSOR') {
+                cursor.r = Math.max(0, Math.min(currentSize.rows - 1, cursor.r + action.dy * mult));
+                cursor.c = Math.max(0, Math.min(currentSize.cols - 1, cursor.c + action.dx * mult));
+                vimBuffer = '';
+            } 
+            // Game Actions
+            else if (action.type === 'FLAG') { toggleFlag(cursor.r, cursor.c); vimBuffer = ''; }
+            else if (action.type === 'REVEAL') { handleClick(cursor.r, cursor.c); vimBuffer = ''; }
+            else if (action.type === 'SMART') {
+                // Spacebar logic: If closed, flag it. If open, chord it.
+                if (!grid[cursor.r][cursor.c].isOpen) toggleFlag(cursor.r, cursor.c);
+                else attemptChord(cursor.r, cursor.c);
+                vimBuffer = '';
+            }
+        }
+    }
 
 	function executeSearch() {
 		if (!searchTerm) return;
