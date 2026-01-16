@@ -788,6 +788,7 @@
 				on:mousedown={() => {
 					if (gameState === 'playing') isMouseDown = true;
 				}}
+				on:contextmenu|preventDefault
 			>
 				{#each grid as row, r (r)}
 					{#each row as cell, c (c)}
