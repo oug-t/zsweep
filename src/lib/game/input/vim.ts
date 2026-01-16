@@ -1,5 +1,5 @@
 // src/lib/game/input/vim.ts
-
+// vim actions are processed in routes/+page.svelte
 export type VimAction = 
   | { type: 'MOVE_CURSOR'; dx: number; dy: number }
   | { type: 'REVEAL' }      
@@ -11,7 +11,7 @@ export type VimAction =
   | { type: 'GO_BOTTOM' }   
   | { type: 'START_ROW' }       
   | { type: 'NEXT_UNREVEALED' } 
-  | { type: 'PREV_UNREVEALED' } 
+  | { type: 'PREV_UNREVEALED' }
   | { type: 'START_SEARCH' }    
   | { type: 'NEXT_MATCH' }      
   | { type: 'PREV_MATCH' }      

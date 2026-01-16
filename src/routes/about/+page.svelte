@@ -214,13 +214,12 @@
 					class="mb-6 flex items-center gap-3 text-lg font-black uppercase tracking-tight text-text">
 					<Info size={20} class="text-main" /> The Philosophy</h2>
 				<p class="max-w-3xl text-base">
-					Most Minesweeper clones rely on mouse interaction, which slows down repeated actions.
-					<strong class="text-main">zsweep</strong> is designed around your keyboard instead.
-				</p>
-
-				<p class="mt-4 max-w-3xl text-base">
-					Vim-style navigation (`hjkl`, `w`, `b`) enables fast movement, predictable actions, and
-					immediate feedback. This reduces friction between intent and execution.
+					Traditional Minesweeper clones rely heavily on mouse inputs, breaking the <span
+						class="font-bold text-text">flow state</span
+					>.
+					<strong class="text-main">zsweep</strong> reimagines the classic logic puzzle as a keyboard-centric
+					experience. By implementing Vim-style motions (`hjkl`, `w`, `b`, `{'{'}`, `{'}'}`) and instant feedback, we aim
+					to create the most efficient and satisfying sweeping engine for developers.
 				</p>
 			</section>
 
