@@ -179,7 +179,7 @@
 						class="font-bold text-text">flow state</span
 					>.
 					<strong class="text-main">zsweep</strong> reimagines the classic logic puzzle as a keyboard-centric
-					experience. By implementing Vim-style motions (`hjkl`, `w`, `b`, `{`, `}`) and instant feedback, we aim
+					experience. By implementing Vim-style motions (`hjkl`, `w`, `b`) and instant feedback, we aim
 					to create the most efficient and satisfying sweeping engine for developers.
 				</p>
 			</section>
