@@ -416,6 +416,60 @@
 			return;
 		}
 
+		if (e.key === '}') {
+			let jumps = mult;
+			let { r, c } = cursor;
+			while (jumps > 0) {
+				r++;
+				if (r >= currentSize.rows) {
+					c++;
+					r = 0;
+				}
+				let loops = 0;
+				const maxLoops = currentSize.rows * currentSize.cols;
+				while (r < currentSize.rows && c < currentSize.cols && loops < maxLoops) {
+					if (grid[r] && grid[r][c] && !grid[r][c].isOpen) break;
+					r++;
+					if (r >= currentSize.rows) {
+						c++;
+						r = 0;
+					}
+					loops++;
+				}
+				jumps--;
+			}
+			if (r < currentSize.rows && c < currentSize.cols) cursor = { r, c };
+			vimBuffer = '';
+			return;
+		}
+
+		if (e.key === '{') {
+			let jumps = mult;
+			let { r, c } = cursor;
+			while (jumps > 0) {
+				r--;
+				if (r < 0) {
+					c--;
+					r = currentSize.rows - 1;
+				}
+				let loops = 0;
+				const maxLoops = currentSize.rows * currentSize.cols;
+				while (r >= 0 && c >= 0 && loops < maxLoops) {
+					if (grid[r] && grid[r][c] && !grid[r][c].isOpen) break;
+					r--;
+					if (r < 0) {
+						c--;
+						r = currentSize.rows - 1;
+					}
+					loops++;
+				}
+				jumps--;
+			}
+			if (r >= 0 && c >= 0) cursor = { r, c };
+			vimBuffer = '';
+			return;
+		}
+
 		const action = handleVimKey(e.key);
 		if (action) {
 			e.preventDefault();

@@ -11,7 +11,9 @@ export type VimAction =
   | { type: 'GO_BOTTOM' }   
   | { type: 'START_ROW' }       
   | { type: 'NEXT_UNREVEALED' } 
-  | { type: 'PREV_UNREVEALED' } 
+  | { type: 'PREV_UNREVEALED' }
+  | { type: 'NEXT_UNREVEALED_VERTICAL' }
+  | { type: 'PREV_UNREVEALED_VERTICAL' }
   | { type: 'START_SEARCH' }    
   | { type: 'NEXT_MATCH' }      
   | { type: 'PREV_MATCH' }      
@@ -38,6 +40,10 @@ export function handleVimKey(key: string): VimAction {
     // --- SKIPS ---
     case 'w': return { type: 'NEXT_UNREVEALED' };
     case 'b': return { type: 'PREV_UNREVEALED' };
+
+    // --- VERTICAL UNREVEALED MOVEMENT ---
+    case '{': return { type: 'PREV_UNREVEALED_VERTICAL' };  
+    case '}': return { type: 'NEXT_UNREVEALED_VERTICAL' };
 
     // --- ACTIONS ---
     case 'i': case 'Enter': return { type: 'REVEAL' };
