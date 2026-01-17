@@ -113,7 +113,7 @@ npm install
 # If you don't have Supabase keys, the game will still run, but scores won't save.
 ```
 
-5. Run the server
+4. Run the server
 ```Bash
 npm run dev
 ```
